@@ -306,7 +306,7 @@ function getAverages(params)
 			if counted < hf_count then valid = false end
 		end
 		if (params['secret'] ~= nil and secretClasses(histfig) == nil) then valid = false end
-		if (params['book'] ~= nil and histfig.info == nil or histfig.info.books == nil) then valid = false end
+		if (params['book'] ~= nil and (histfig.info == nil or histfig.info.books == nil)) then valid = false end
 		
 		if valid == true then
 			--print (dfhack.TranslateName(histfig.name))
