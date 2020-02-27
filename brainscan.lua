@@ -179,7 +179,13 @@ function getHfLinkType(hf)
 	return nil
 end
 
-
+function hasPosition(histfig)
+	if (histfig.entity_links == nil) then return nil end
+	for index, link in ipairs(histfig.entity_links) do
+		if (df['histfig_entity_link_former_positionst']:is_instance(link) or df['histfig_entity_link_positionst']:is_instance(link) ) then return true end
+	end
+	return nil
+end
 --printall(histfig.info.curse.active_effects[0].syndrome[0].syn_class[0])
 
 function printHistfig(histfig_id)
@@ -247,6 +253,12 @@ function printHistfig(histfig_id)
 		if (histfig.info.kills ~= nil) then
 		end
 		
+		--history_event_collection_warst
+		--history_event_collection_battlest
+		--printall(histfig.entity_links)
+		--247, lir is position 0
+		--population 228
+		
 	else
 		print ('No info available')
 	end
@@ -271,6 +283,27 @@ function getAverages(params)
 		trait_totals[traitName] = 0
 		--table.insert(trait_totals,0)
 	end
+	
+	if (params['battle_leader'] ~= nil) then
+		allfigs = {}
+		local figlist = {}
+		local i = 0
+		for eci, ec in pairs(df.global.world.history.event_collections.all) do
+			if (df.history_event_collection_battlest:is_instance(ec)) then
+				for hf1,hfid in ipairs(ec.attacker_hf) do
+					if (figlist[hfid] == nil) then
+						fig = df.global.world.history.figures[hfid]
+						allfigs[i] = fig
+						figlist[hfid] = fig
+						i = i+1
+						break
+					end
+					--table.insert(allfigs,fig)
+				end
+			end
+		end
+	end
+	
 	for hf=1, #allfigs do
 		local histfig = allfigs[hf - 1]
 		local valid = true
@@ -308,11 +341,11 @@ function getAverages(params)
 		if (params['secret'] ~= nil and secretClasses(histfig) == nil) then valid = false end
 		if (params['book'] ~= nil and (histfig.info == nil or histfig.info.books == nil)) then valid = false end
 		
+		if (params['position'] ~= nil and (hasPosition(histfig) == nil)) then valid = false end
+		
 		if valid == true then
-			--print (dfhack.TranslateName(histfig.name))
 			if (histfig.info ~= nil) then
 				if (histfig.info.personality ~= nil) then
-					--printall(histfig.info.personality.anon_1.traits)
 					for index, traitName in ipairs(df.personality_facet_type) do
 						if (index > -1) then
 							local strength = histfig.info.personality.anon_1.traits[traitName]
@@ -369,6 +402,10 @@ end
 
 --printall(df)
 
+
+
+
+
 if #args == 0 or (#args == 1 and args[1] == '-showall') then
 	if (#args == 1) then streamline = false end
 	if histfig_id ~= nil then
@@ -416,6 +453,10 @@ else
 			params['hf_count'] = args[a+2]
 		elseif (arg == '-book') then
 			params['book'] = true
+		elseif (arg == '-position') then
+			params['position'] = true
+		elseif (arg == '-battle_leader') then
+			params['battle_leader'] = true
 		elseif (arg == '-secret') then
 			if (args[a+1] == '*') then
 				params['secret'] = '*'
