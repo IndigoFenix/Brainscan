@@ -9,8 +9,11 @@ Params available:
 {-showall} - Show all values, including average traits.  (Normally only shows traits that are above or below average.)
 {-race GOBLIN} - Selects all histfigs of the selected race.  Use the ID from the raws.
 {-prof POET} - Selects all histfigs with the given profession.
-{-syntag BLOODSUCKER} - Selects all histfigs with the given syndrome tag.
-{-synclass WERECURSE} - Selects all histfigs with the given syndrome class.
+{-cursetag BLOODSUCKER} - Selects all histfigs with the given syndrome tag.
+{-curseclass WERECURSE} - Selects all histfigs with the given syndrome class.
+{-secret} - Selects all histfigs that have a secret interaction.
+{-book} - Selects all histfigs that have written at least one book.
+{-hf TYPE NUMBER} - Selects all histfigs with at least the NUMBER relationships of a particular TYPE, for example {deity}, {apprentice}, {spouse}, etc.
 
 ]====]
 
@@ -35,6 +38,7 @@ local streamline = true
 
 local tierRanges = {{min = 0, max = 9, weight = 4}, {min = 10, max = 24, weight = 20}, {min = 25, max = 39, weight = 85}, {min = 40, max = 60, weight = 780}, {min = 61, max = 75, weight = 85}, {min = 76, max = 90, weight = 20}, {min = 91, max = 100, weight = 4}}
 local tierDesc = {'extremely low','very low','low','average','high','very high','extremely high'}
+local hfLinkType = {'deity','spouse','child','lover','mother','father','parent','master','former_master','prisoner','imprisoner','apprentice','former_apprentice'}
 -- Gets what tier of trait that the given value falls into
 -- 1: Lowest | 2: Very Low | 3: Low | 4: Neutral | 5: High | 6: Very High | 7: Highest
 function getTraitTier(value)
@@ -97,8 +101,14 @@ end
 
 
 if df.viewscreen_legendsst:is_instance(vs) then
-	if (vs ~= nil) and (vs.histfigs ~= nil) and (vs.sub_cursor ~= nil) then
-		histfig_id = vs.histfigs[vs.sub_cursor]
+	if (vs ~= nil) and (vs.histfigs_filtered ~= nil) and (vs.sub_cursor ~= nil) then
+		--printall(vs)
+		--printall(vs.histfigs_filtered)
+		print(vs.sub_cursor)
+		--printall(vs.histfigs_filtered)
+		histfig_id = vs.histfigs[vs.histfigs_filtered[vs.sub_cursor]]
+		print('Histfig id '..histfig_id)
+		--return
 	end
 end
 
@@ -141,6 +151,32 @@ function synClasses(curse)
 	end
 	if (hastags == false) then return nil end
 	return tags
+end
+
+function secretClasses(histfig)
+	local tags = {}
+	local hastags = false
+	if (histfig.info == nil or histfig.info.secret == nil) then return nil end
+	for int_index, interaction in ipairs(histfig.info.secret.interactions) do
+		for effect_index, effect in ipairs(interaction.effects) do
+			for syn_index, syndrome in ipairs(effect.syndrome) do
+				if (syn_class ~= nil) then
+					tags[syn_class.value] = true
+				end
+				hastags = true
+			end
+		end
+	end
+	if (hastags == false) then return nil end
+	return tags
+end
+
+function getHfLinkType(hf)
+	for index, linktype in ipairs(hfLinkType) do
+		if (df['histfig_hf_link_' .. linktype .. 'st'] ~= nil and df['histfig_hf_link_' .. linktype .. 'st']:is_instance(hf)) then return linktype end
+	end
+	print (hf)
+	return nil
 end
 
 
@@ -192,17 +228,35 @@ function printHistfig(histfig_id)
 		if (histfig.info.curse ~= nil) then
 			syndrome = synClasses(histfig.info.curse)
 			if (syndrome ~= nil) then
-				print("Syndrome classes:")
+				print("Curse classes:")
 				for tag in pairs(syndrome) do
 					print (tag)
 				end
 			end
 		end
 		
+		local secret_classes = secretClasses(histfig)
+		if (secret_classes ~= nil) then
+			print("Secret classes:")
+			for tag in pairs(secret_classes) do
+				print (tag)
+			end
+		end
+		
+		
+		if (histfig.info.kills ~= nil) then
+		end
+		
 	else
 		print ('No info available')
 	end
-	--printall(histfig)
+	if (histfig.histfig_links ~= nil) then
+		for index,link in ipairs(histfig.histfig_links) do
+			local linktype = getHfLinkType(link)
+			--print ('Link type: ' .. getHfLinkType(link))
+		end
+	end
+	
 		--printall (df.global.world.nemesis.all[unit_id])
 end
 
@@ -210,6 +264,7 @@ function getAverages(params)
 	local allfigs = df.global.world.history.figures
 	local figcount = 0
 	local trait_totals = {}
+	local value_totals = {}
 	local i
 	local hf
 	for index, traitName in ipairs(df.personality_facet_type) do
@@ -237,42 +292,82 @@ function getAverages(params)
 				if (syndrome == nil or syndrome[params['synclass']] == nil) then valid = false end
 			end
 		end
+		if (params['hf'] ~= nil) then
+			local hf_count = tonumber(params['hf_count'])
+			local counted = 0
+			if hf_count == nil or type(hf_count) ~= "number" then hf_count = 1 end
+			if (histfig.histfig_links ~= nil) then
+				for index,link in ipairs(histfig.histfig_links) do
+					local linktype = getHfLinkType(link)
+					if (linktype == params['hf']) then counted = counted + 1 end
+					if counted >= hf_count then break end
+				end
+			end
+			if counted < hf_count then valid = false end
+		end
+		if (params['secret'] ~= nil and secretClasses(histfig) == nil) then valid = false end
+		if (params['book'] ~= nil and histfig.info == nil or histfig.info.books == nil) then valid = false end
+		
 		if valid == true then
 			--print (dfhack.TranslateName(histfig.name))
-			if (histfig.info ~= nil and histfig.info.personality ~= nil) then
-				--printall(histfig.info.personality.anon_1.traits)
-				for index, traitName in ipairs(df.personality_facet_type) do
-					if (index > -1) then
-						local strength = histfig.info.personality.anon_1.traits[traitName]
-						trait_totals[traitName] = trait_totals[traitName] + strength
+			if (histfig.info ~= nil) then
+				if (histfig.info.personality ~= nil) then
+					--printall(histfig.info.personality.anon_1.traits)
+					for index, traitName in ipairs(df.personality_facet_type) do
+						if (index > -1) then
+							local strength = histfig.info.personality.anon_1.traits[traitName]
+							trait_totals[traitName] = trait_totals[traitName] + strength
+						end
 					end
+					for i=1, #histfig.info.personality.anon_1.values do
+						local value = histfig.info.personality.anon_1.values[i-1]
+						local value_type = df.value_type[value.type]
+						if value_totals[value_type] == nil then value_totals[value_type] = 0 end
+						value_totals[value_type] = value_totals[value_type] + value.strength
+					end
+					figcount = figcount + 1
 				end
-				figcount = figcount + 1
 			end
 		end
+		
 	end
 	print (figcount .. ' figures scanned')
 	if (figcount > 0) then
 		local trait_averages = {}
+		local value_averages = {}
 		for index, traitName in pairs(trait_totals) do
 			if (index ~= 'NONE') then
 				trait_averages[index] = trait_totals[index] / figcount
 			end
 		end
+		for index, traitName in pairs(value_totals) do
+			value_averages[index] = value_totals[index] / figcount
+		end
+		local has_outlier = false
 		for traitName, strength in pairs(trait_averages) do
 			--local strength = trait_averages[traitName]
 			local tier = getTraitTier(strength)
 			if (streamline == false or tier ~= 4) then
 				print (traitName .. ': ' .. tierDesc[tier] .. ' (' .. strength .. ')')
+				has_outlier = true
 			end
+		end
+		for valueName, strength in pairs(value_averages) do
+			--local strength = trait_averages[traitName]
+			local tier = getTraitTier(strength + 50)
+			if (streamline == false or tier ~= 4) then
+				print (valueName .. ': ' .. tierDesc[tier] .. ' (' .. strength .. ')')
+				has_outlier = true
+			end
+		end
+		if (has_outlier == false) then
+			print('No statistically significant trends. Use -showall to view all averages.')
 		end
 		--printall(trait_averages)
 	end
 end
 
 --printall(df)
-
-local args = {...}
 
 if #args == 0 or (#args == 1 and args[1] == '-showall') then
 	if (#args == 1) then streamline = false end
@@ -310,17 +405,23 @@ else
 			params['profession'] = args[a+1]
 		elseif (arg == '-vampire') then
 			params['vampire'] = true
-		elseif (arg == '-syntag') then
+		elseif (arg == '-cursetag') then
 			params['syntag'] = args[a+1]
-		elseif (arg == '-synclass') then
+		elseif (arg == '-curseclass') then
 			params['synclass'] = args[a+1]
+		elseif (arg == '-secret') then
+			params['secret'] = true
+		elseif (arg == '-hf') then
+			params['hf'] = args[a+1]
+			params['hf_count'] = args[a+2]
+		elseif (arg == '-book') then
+			params['book'] = true
 		elseif (arg == '-secret') then
 			if (args[a+1] == '*') then
 				params['secret'] = '*'
 			else
 				
 			end
-			
 		end
 	end
 	getAverages(params)
