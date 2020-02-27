@@ -13,7 +13,8 @@ Params available:
 {-curseclass WERECURSE} - Selects all histfigs with the given syndrome class.
 {-secret} - Selects all histfigs that have a secret interaction.
 {-book} - Selects all histfigs that have written at least one book.
-{-hf TYPE NUMBER} - Selects all histfigs with at least the NUMBER relationships of a particular TYPE, for example {deity}, {apprentice}, {spouse}, etc.
+{-hf TYPE NUMBER} - Selects all histfigs with at least the NUMBER relationships of a particular TYPE.
+	hf types are deity,spouse,former_spouse,deceased_spouse,child,lover,mother,father,parent,master,former_master,prisoner,imprisoner,apprentice,former_apprentice
 
 ]====]
 
@@ -38,7 +39,7 @@ local streamline = true
 
 local tierRanges = {{min = 0, max = 9, weight = 4}, {min = 10, max = 24, weight = 20}, {min = 25, max = 39, weight = 85}, {min = 40, max = 60, weight = 780}, {min = 61, max = 75, weight = 85}, {min = 76, max = 90, weight = 20}, {min = 91, max = 100, weight = 4}}
 local tierDesc = {'extremely low','very low','low','average','high','very high','extremely high'}
-local hfLinkType = {'deity','spouse','child','lover','mother','father','parent','master','former_master','prisoner','imprisoner','apprentice','former_apprentice'}
+local hfLinkType = {'deity','spouse','former_spouse','deceased_spouse','child','lover','mother','father','parent','master','former_master','prisoner','imprisoner','apprentice','former_apprentice'}
 -- Gets what tier of trait that the given value falls into
 -- 1: Lowest | 2: Very Low | 3: Low | 4: Neutral | 5: High | 6: Very High | 7: Highest
 function getTraitTier(value)
@@ -102,18 +103,8 @@ end
 
 if df.viewscreen_legendsst:is_instance(vs) then
 	if (vs ~= nil) and (vs.histfigs_filtered ~= nil) and (vs.sub_cursor ~= nil) then
-		--printall(vs)
-		--printall(vs.histfigs_filtered)
-		print(vs.sub_cursor)
-		--printall(vs.histfigs_filtered)
 		histfig_id = vs.histfigs[vs.histfigs_filtered[vs.sub_cursor]]
-		print('Histfig id '..histfig_id)
-		--return
 	end
-end
-
-for id, name in ipairs(df.job_skill) do
-	--print (id .. ': ' .. name)
 end
 
 function synTags(curse)
@@ -186,7 +177,6 @@ function hasPosition(histfig)
 	end
 	return nil
 end
---printall(histfig.info.curse.active_effects[0].syndrome[0].syn_class[0])
 
 function printHistfig(histfig_id)
 	local histfig = df.global.world.history.figures[histfig_id]
@@ -252,13 +242,6 @@ function printHistfig(histfig_id)
 		
 		if (histfig.info.kills ~= nil) then
 		end
-		
-		--history_event_collection_warst
-		--history_event_collection_battlest
-		--printall(histfig.entity_links)
-		--247, lir is position 0
-		--population 228
-		
 	else
 		print ('No info available')
 	end
@@ -400,11 +383,6 @@ function getAverages(params)
 	end
 end
 
---printall(df)
-
-
-
-
 
 if #args == 0 or (#args == 1 and args[1] == '-showall') then
 	if (#args == 1) then streamline = false end
@@ -467,5 +445,3 @@ else
 	end
 	getAverages(params)
 end
-
-	--printall(df)
