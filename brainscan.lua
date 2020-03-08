@@ -34,10 +34,6 @@ end
 local vs = dfhack.gui.getCurViewscreen();
 local focus = dfhack.gui.getCurFocus();
 
-if df.viewscreen_textviewerst:is_instance(vs) then
-	vs = vs.parent
-end
-
 local histfig_id = nil
 local streamline = true
 local original_values_only = false
@@ -106,9 +102,21 @@ end
 
 
 
+
+if df.viewscreen_textviewerst:is_instance(vs) then
+	vs = vs.parent
+end
 if df.viewscreen_legendsst:is_instance(vs) then
 	if (vs ~= nil) and (vs.histfigs_filtered ~= nil) and (vs.sub_cursor ~= nil) then
 		histfig_id = vs.histfigs[vs.histfigs_filtered[vs.sub_cursor]]
+	end
+else
+    local unit=dfhack.gui.getSelectedUnit()
+        if unit==nil then
+            print ("No unit under cursor!  Aborting.")
+        return
+    else
+		histfig_id = unit.hist_figure_id
 	end
 end
 
@@ -216,7 +224,7 @@ function printHistfig(histfig_id)
 			--printall (histfig.info.personality.anon_1)
 			printall (histfig.info.personality.anon_1.emotions)
 			for i=1, #histfig.info.personality.anon_1.dreams do
-				print ('Has a dream: type ' .. (histfig.info.personality.anon_1.dreams[i-1].type))
+				print ('Has a dream: ' .. df.goal_type[histfig.info.personality.anon_1.dreams[i-1].type])
 			end
 			for index, traitName in ipairs(df.personality_facet_type) do
 				if (index > -1) then
@@ -244,7 +252,7 @@ function printHistfig(histfig_id)
 			
 			for i=1, #histfig.info.personality.anon_1.values do
 				local value = histfig.info.personality.anon_1.values[i-1]
-				print (df.value_type[value.type] .. ': ' .. value.strength)
+				print (df.value_type[value.type] .. ': ' .. tierDesc[getTraitTier(value.strength + 50)] .. ' (' .. value.strength .. ') ')
 			end
 		else
 			print("No personality info available")
@@ -279,8 +287,19 @@ function printHistfig(histfig_id)
 		
 		local allpositions = getAllPositions(histfig)
 		
+		local has_responsibilities = false
+		local responsibilities = {}
 		for index, pos in pairs(allpositions) do
-			--printall(pos.responsibilities)
+			for rindex, rpos in pairs(pos.responsibilities) do
+				has_responsibilities = true
+				if (rpos == true) then table.insert(responsibilities,rindex) end
+			end
+		end
+		if (has_responsibilities == true) then
+			print('Responsibilities held:')
+			for index, r in pairs(responsibilities) do
+				print (r)
+			end
 		end
 		
 		if (histfig.info.kills ~= nil) then
@@ -294,6 +313,7 @@ function printHistfig(histfig_id)
 			--print ('Link type: ' .. getHfLinkType(link))
 		end
 	end
+	
 	--18479
 	--printall(histfig.info.pets) animals that have been tamed
 	--printall(df.global.world.nemesis.all[10].figure)
