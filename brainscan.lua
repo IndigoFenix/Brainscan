@@ -160,19 +160,21 @@ end
 function secretClasses(histfig)
 	local tags = {}
 	local hastags = false
-	if (histfig.info == nil or histfig.info.secret == nil) then return nil end
-	for int_index, interaction in ipairs(histfig.info.secret.interactions) do
-		for effect_index, effect in ipairs(interaction.effects) do
+	if (histfig.info == nil or histfig.info.known_info == nil or histfig.info.known_info.known_secrets == nil) then return nil end
+	for secret_index, secret in ipairs(histfig.info.known_info.known_secrets) do
+		for effect_index, effect in ipairs(secret.effects) do
 			for syn_index, syndrome in ipairs(effect.syndrome) do
-				if (syn_class ~= nil) then
-					tags[syn_class.value] = true
+				for syn_class_index, syn_class in ipairs(syndrome.syn_class) do
+					if (syn_class ~= nil) then
+						tags[syn_class.value] = true
+					end
+					hastags = true
 				end
-				hastags = true
 			end
 		end
+		if (hastags == false) then return nil end
+		return tags
 	end
-	if (hastags == false) then return nil end
-	return tags
 end
 
 function getHfLinkType(hf)
@@ -220,19 +222,19 @@ function printHistfig(histfig_id)
 	if (histfig.info ~= nil) then
 		if (histfig.info.personality ~= nil) then
 			print("Personality:")
-			
-			--printall (histfig.info.personality.anon_1)
-			printall (histfig.info.personality.anon_1.emotions)
-			for i=1, #histfig.info.personality.anon_1.dreams do
-				print ('Has a dream: ' .. df.goal_type[histfig.info.personality.anon_1.dreams[i-1].type])
+			printall (histfig.info.personality)
+			printall (histfig.info.personality.personality)
+			printall (histfig.info.personality.personality.emotions)
+			for i=1, #histfig.info.personality.personality.dreams do
+				print ('Has a dream: ' .. df.goal_type[histfig.info.personality.personality.dreams[i-1].type])
 			end
 			for index, traitName in ipairs(df.personality_facet_type) do
 				if (index > -1) then
-					local strength = histfig.info.personality.anon_1.traits[traitName]
+					local strength = histfig.info.personality.personality.traits[traitName]
 					local change = 0
-					if (histfig.info.personality.anon_1.temporary_trait_changes ~= nil) then
-						if (histfig.info.personality.anon_1.temporary_trait_changes[index] ~= 0) then
-							change = histfig.info.personality.anon_1.temporary_trait_changes[index]
+					if (histfig.info.personality.personality.temporary_trait_changes ~= nil) then
+						if (histfig.info.personality.personality.temporary_trait_changes[index] ~= 0) then
+							change = histfig.info.personality.personality.temporary_trait_changes[index]
 							strength = strength + change
 						end
 					end
@@ -250,8 +252,8 @@ function printHistfig(histfig_id)
 			
 			print("Values:")
 			
-			for i=1, #histfig.info.personality.anon_1.values do
-				local value = histfig.info.personality.anon_1.values[i-1]
+			for i=1, #histfig.info.personality.personality.values do
+				local value = histfig.info.personality.personality.values[i-1]
 				print (df.value_type[value.type] .. ': ' .. tierDesc[getTraitTier(value.strength + 50)] .. ' (' .. value.strength .. ') ')
 			end
 		else
@@ -446,18 +448,18 @@ function getAverages(params)
 				if (histfig.info.personality ~= nil) then
 					for index, traitName in ipairs(df.personality_facet_type) do
 						if (index > -1) then
-							local strength = histfig.info.personality.anon_1.traits[traitName]
-							if (original_values_only == false and histfig.info.personality.anon_1.temporary_trait_changes ~= nil) then
-								if (histfig.info.personality.anon_1.temporary_trait_changes[index] ~= 0) then
-									local change = histfig.info.personality.anon_1.temporary_trait_changes[index]
+							local strength = histfig.info.personality.personality.traits[traitName]
+							if (original_values_only == false and histfig.info.personality.personality.temporary_trait_changes ~= nil) then
+								if (histfig.info.personality.personality.temporary_trait_changes[index] ~= 0) then
+									local change = histfig.info.personality.personality.temporary_trait_changes[index]
 									strength = strength + change
 								end
 							end
 							trait_totals[traitName] = trait_totals[traitName] + strength
 						end
 					end
-					for i=1, #histfig.info.personality.anon_1.values do
-						local value = histfig.info.personality.anon_1.values[i-1]
+					for i=1, #histfig.info.personality.personality.values do
+						local value = histfig.info.personality.personality.values[i-1]
 						local value_type = df.value_type[value.type]
 						if value_totals[value_type] == nil then value_totals[value_type] = 0 end
 						value_totals[value_type] = value_totals[value_type] + value.strength
