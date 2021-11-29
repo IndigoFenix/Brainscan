@@ -20,6 +20,10 @@ Params available:
 {-hf TYPE NUMBER} - Selects all histfigs with at least the NUMBER relationships of a particular TYPE.
 	hf types are deity,spouse,former_spouse,deceased_spouse,child,lover,mother,father,parent,master,former_master,prisoner,imprisoner,apprentice,former_apprentice
 
+[-thief] - Selects only histfigs that stole items.
+[-snatcher] - Selects only histfigs that kidnapped children.
+[-war_starter] - Selects only histfigs that were a leader of an entity that were the aggressors in a war.
+[-battle_leader] - Selects only histfigs that were leaders of a battle.
 ]====]
 
 local utils = require "utils"
@@ -360,6 +364,65 @@ function getAverages(params)
 		end
 	end
 	
+	if (params['war_starter'] ~= nil) then
+		allfigs = {}
+		local figlist = {}
+		local i = 0
+		for eci, ec in pairs(df.global.world.history.event_collections.all) do
+			if (df.history_event_collection_warst:is_instance(ec)) then
+				for hf1, hfid in ipairs(ec.unk.attacker_entity_leader) do
+					if (figlist[hfid] == nil) then
+						fig = df.global.world.history.figures[hfid]
+						allfigs[i] = fig
+						figlist[hfid] = fig
+						i = i+1
+						break
+					end
+				end
+			end
+		end
+	end
+	
+	if (params['thief'] ~= nil) then
+		allfigs = {}
+		local figlist = {}
+		local i = 0
+		for eci, ec in pairs(df.global.world.history.event_collections.all) do
+			if (df.history_event_collection_theftst:is_instance(ec)) then
+				for hf1,hfid in ipairs(ec.thief_hf) do
+					if (figlist[hfid] == nil) then
+						fig = df.global.world.history.figures[hfid]
+						allfigs[i] = fig
+						figlist[hfid] = fig
+						i = i+1
+						break
+					end
+					--table.insert(allfigs,fig)
+				end
+			end
+		end
+	end
+	
+	if (params['snatcher'] ~= nil) then
+		allfigs = {}
+		local figlist = {}
+		local i = 0
+		for eci, ec in pairs(df.global.world.history.event_collections.all) do
+			if (df.history_event_collection_abductionst:is_instance(ec)) then
+				for hf1,hfid in ipairs(ec.snatcher_hf) do
+					if (figlist[hfid] == nil) then
+						fig = df.global.world.history.figures[hfid]
+						allfigs[i] = fig
+						figlist[hfid] = fig
+						i = i+1
+						break
+					end
+					--table.insert(allfigs,fig)
+				end
+			end
+		end
+	end
+	
 	for hf=1, #allfigs do
 		local histfig = allfigs[hf - 1]
 		local valid = true
@@ -586,6 +649,12 @@ else
 			params['responsibility'] = args[a+1]
 		elseif (arg == '-battle_leader') then
 			params['battle_leader'] = true
+		elseif (arg == '-war_starter') then
+			params['war_starter'] = true
+		elseif (arg == '-thief') then
+			params['thief'] = true
+		elseif (arg == '-snatcher') then
+			params['snatcher'] = true
 		elseif (arg == '-secret') then
 			if (args[a+1] == '*') then
 				params['secret'] = '*'
